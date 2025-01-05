@@ -29,7 +29,7 @@
                     <div class="flex justify-center mt-8">
                         <div class="rounded-full overflow-hidden w-40 h-40 border-4 border-secondary shadow-lg hover:border-primary transition duration-300">
                             <img
-                                src="{{ asset('images/your-profile.jpg') }}"
+                                src="{{ asset('images/profile_picture.jpg') }}"
                                 alt="Profile Picture"
                                 class="w-full h-full object-cover"
                             />
