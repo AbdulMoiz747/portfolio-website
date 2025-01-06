@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: Moiz_portfolio
+    name: portfolio-website
     runtime: php
     env: production
     region: oregon
