@@ -1,53 +1,46 @@
-# Stage 1: Build frontend assets using Node
-FROM node:18 as node-builder
+# Stage 1: Build Frontend assets
+FROM node:18 as node
 
 WORKDIR /app
 
 COPY package*.json ./
-COPY vite.config.js ./
-COPY resources/ resources/
-COPY public/ public/
+RUN npm install
 
-RUN npm install && npm run build
+COPY . .
+RUN npm run build
 
 
-# Stage 2: Laravel App with PHP and Apache
+# Stage 2: Laravel app with Apache and PHP
 FROM php:8.2-apache
 
-WORKDIR /var/www/html
-
-# Install system packages
+# Enable PHP extensions required by Laravel
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpng-dev libonig-dev libxml2-dev libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
+    libzip-dev unzip git curl libpq-dev libonig-dev zip \
+    && docker-php-ext-install pdo pdo_pgsql zip
 
-# Enable Apache rewrite module
+# Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# Set Apache to use Laravel's public directory
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
- && sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+# Copy Laravel app from node build stage
+COPY --from=node /app /var/www/html
+
+# Set working directory
+WORKDIR /var/www/html
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy application code
-COPY . .
-
-# Copy built assets
-COPY --from=node-builder /app/public/build public/build
-
-# Install Laravel PHP dependencies
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Set correct permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
 
-# Expose HTTP port
+# Serve Laravel using Apache
 EXPOSE 80
-
-# Start Apache
 CMD ["apache2-foreground"]
+
 
 
 
