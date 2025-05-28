@@ -1,39 +1,40 @@
-# Use the official PHP image with Apache
 FROM php:8.2-apache
 
-# Set working directory
-WORKDIR /var/www/html
-
-# Install system dependencies and PHP extensions
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpng-dev libonig-dev libxml2-dev \
-    libpq-dev nodejs npm && \
-    docker-php-ext-install pdo pdo_pgsql
+    git curl zip unzip libpq-dev libonig-dev libzip-dev \
+    && docker-php-ext-install pdo pdo_pgsql
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# Install Composer globally
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Set working directory
+WORKDIR /var/www/html
 
-# Copy app code
+# Copy all files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Set the proper document root
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-available/000-default.conf
 
-# Install JS dependencies and build assets with Vite
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install PHP dependencies
+RUN composer install --no-dev --no-interaction --optimize-autoloader
+
+# Build frontend (ensure vite is configured for production)
 RUN npm install && npm run build
 
-# Set correct permissions for Laravel
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Expose HTTP port
+# Expose port 80
 EXPOSE 80
 
-# Start Apache in foreground
 CMD ["apache2-foreground"]
+
 
 
 
