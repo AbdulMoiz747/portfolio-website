@@ -21,11 +21,14 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 # Copy Laravel app from node build stage
 COPY --from=node /app /var/www/html
 
 # Set working directory
 WORKDIR /var/www/html
+
+
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
